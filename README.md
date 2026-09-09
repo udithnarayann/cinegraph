@@ -1,6 +1,6 @@
 # CineGraph
 
-> A time-boxed interview project that turns continuously updated movie feedback into trends, an auditable knowledge graph, and evidence-grounded answers.
+> This project turns continuously updated movie feedback into trends, an auditable knowledge graph, and evidence-grounded answers.
 
 [Live Demo](https://cinegraph-umber.vercel.app/) 
 
