@@ -2,7 +2,7 @@
 
 > A time-boxed interview project that turns continuously updated movie feedback into trends, an auditable knowledge graph, and evidence-grounded answers.
 
-[Live Demo](YOUR_VERCEL_URL) Â· [Architecture](#architecture) Â· [API Reference](#api-routes)
+[Live Demo](https://cinegraph-umber.vercel.app/) 
 
 ![Next.js](https://img.shields.io/badge/Next.js-16-black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6)
