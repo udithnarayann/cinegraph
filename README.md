@@ -1,209 +1,281 @@
 # CineGraph
 
-A free-first movie feedback intelligence app built around a real knowledge graph and Graph RAG. It synchronizes movie metadata, classifies feedback, detects emerging issues, preserves every change, and answers questions with traceable evidence.
+> A time-boxed interview project that turns continuously updated movie feedback into trends, an auditable knowledge graph, and evidence-grounded answers.
 
-![Next.js](https://img.shields.io/badge/Next.js-16-black) ![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%2B%20pgvector-3ecf8e) ![Gemini](https://img.shields.io/badge/Gemini-Graph%20RAG-8aa8ff) ![Vercel](https://img.shields.io/badge/Deploy-Vercel-black)
+[Live Demo](YOUR_VERCEL_URL) Â· [Architecture](#architecture) Â· [API Reference](#api-routes)
 
-## What works
+![Next.js](https://img.shields.io/badge/Next.js-16-black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6)
+![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%2B%20pgvector-3ecf8e)
+![Gemini](https://img.shields.io/badge/Gemini-Graph%20RAG-8aa8ff)
+![Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black)
 
-- TMDB movie search, metadata, credits, images, ratings, and user-review ingestion
-- NYTimes professional review summaries and source links
-- Optional OMDb ratings, awards, and box-office enrichment
-- Gemini classification, sentiment, entity extraction, embeddings, and grounded answers
-- Supabase/Postgres persistence with `pgvector`
-- Interactive knowledge graph connecting movies, people, sources, and categories
-- Hybrid Graph RAG: semantic retrieval → graph expansion → cited synthesis
-- Trending-category detection and sentiment movement
-- Add, edit, soft-delete, and restore feedback
-- Append-only versions and audit events generated in the database
-- Daily Vercel Cron synchronization
-- Live-only data path with no synthetic movie or review fallback
+## Overview
 
-## Run locally now
+CineGraph was built from this product brief:
 
-Requires Node.js 22+.
+> Automatically categorize movie feedback, surface trending categories and issues, and maintain a complete audit trail as reviews are added, edited, or deleted.
 
-```bash
+The deployed application:
+
+- synchronizes real movie metadata and reviews;
+- classifies sentiment, categories, and named entities;
+- detects emerging discussion themes and sentiment changes;
+- builds an interactive, evidence-backed knowledge graph;
+- answers natural-language questions with Graph RAG;
+- cites the feedback used for each answer; and
+- preserves feedback versions and audit events in PostgreSQL.
+
+The default movie is Christopher Nolan's **The Odyssey**, but any movie returned by TMDB can be selected and synchronized.
+
+## Core features
+
+- **Live ingestion:** TMDB metadata and user reviews, NYT professional-review coverage, and optional OMDb enrichment
+- **Automated analysis:** Gemini sentiment classification, category assignment, entity extraction, and 768-dimensional embeddings
+- **Trend intelligence:** category momentum, sentiment summaries, and recent activity visualization
+- **Knowledge graph:** movies, people, sources, categories, concepts, and evidence-supported relationships
+- **Graph RAG:** vector retrieval, graph-aware context construction, and cited Gemini synthesis
+- **Auditability:** add, edit, soft-delete, and restore feedback while retaining append-only versions
+- **Continuous updates:** manual source synchronization plus a daily Vercel Cron job
+- **Traceability:** source payloads, timestamps, URLs, evidence excerpts, and feedback IDs
+
+## Architecture
+
+~~~mermaid
+flowchart TD
+  A["TMDB metadata + reviews"] --> D["Ingestion pipeline"]
+  B["NYT Article Search"] --> D
+  C["OMDb (optional)"] --> D
+  D --> E["Gemini analysis + embeddings"]
+  E --> F["Supabase Postgres + pgvector"]
+  F --> G["Trends + knowledge graph"]
+  F --> H["Graph RAG"]
+  G --> I["Next.js dashboard"]
+  H --> I
+~~~
+
+### Ingestion flow
+
+1. A movie is opened, selected, or scheduled for synchronization.
+2. TMDB supplies canonical metadata and up to eight user reviews.
+3. NYT Article Search adds matching professional-review summaries and links.
+4. OMDb optionally enriches aggregate ratings and box-office metadata.
+5. Gemini classifies changed reviews and creates embeddings.
+6. Normalized records are idempotently upserted into Supabase.
+7. PostgreSQL triggers create versions, audit events, graph nodes, and graph edges.
+8. The dashboard recalculates trends and renders the current evidence graph.
+
+## Knowledge graph
+
+A knowledge graph represents information as **entities** and **relationships**, instead of isolated records.
+
+In CineGraph, feedback can produce relationships such as:
+
+~~~text
+TMDB â”€â”€reviewedâ”€â”€â”€â”€â”€â”€â”€â”€â–¶ The Odyssey
+The Odyssey â”€â”€praised forâ”€â”€â”€â”€â–¶ Visuals
+The Odyssey â”€â”€criticized forâ”€â–¶ Pacing
+TMDB â”€â”€mentionsâ”€â”€â”€â”€â”€â”€â”€â”€â–¶ Matt Damon
+~~~
+
+Every feedback-derived edge retains its supporting feedback ID, confidence, and evidence excerpt. When feedback is edited, deleted, or restored, a database trigger rebuilds its relationships so the graph remains consistent with active evidence.
+
+## Graph RAG
+
+Graph RAG combines semantic retrieval with knowledge-graph relationships:
+
+1. The question is converted into a 768-dimensional Gemini embedding.
+2. Supabase pgvector retrieves the most relevant active feedback.
+3. Connected categories and entities create a graph-aware evidence path.
+4. Only retrieved evidence and its IDs are sent to Gemini.
+5. Gemini produces a grounded answer with feedback-ID citations.
+6. The UI exposes the path, source excerpts, and original URLs.
+
+If vector retrieval or Gemini generation is unavailable, deterministic lexical retrieval and extractive-answer fallbacks remain available.
+
+## Tech stack
+
+| Technology | Use |
+|---|---|
+| Next.js 16 + React 19 | Dashboard, server rendering, and API routes |
+| TypeScript | End-to-end type safety |
+| Tailwind CSS + Radix UI | Responsive interface and accessible components |
+| Recharts | Trend visualization |
+| Supabase PostgreSQL | Persistent data, graph tables, triggers, and audit history |
+| pgvector | Semantic similarity search over review embeddings |
+| Gemini | Classification, entity extraction, embeddings, and answer synthesis |
+| TMDB API | Movie search, metadata, credits, images, ratings, and user reviews |
+| NYT Article Search API | Professional-review summaries and links |
+| OMDb API | Optional ratings, awards, and box-office enrichment |
+| Vercel | Hosting, serverless execution, and scheduled synchronization |
+
+## Data-source decisions and constraints
+
+IMDb was considered as suggested during the interview, but API access was still awaiting approval within the project window. TMDB was therefore used as the primary movie and audience-review source.
+
+The legacy NYT Movie Reviews API was unavailable, so the integration was adapted to the NYT Article Search API for professional-review coverage. It provides metadata, summaries, and article links rather than full copyrighted review text.
+
+The implementation was designed around free-tier constraints:
+
+- provider review availability varies by movie;
+- bounded scheduled synchronization protects API quotas;
+- TMDB ingestion is limited to eight reviews per synchronization;
+- NYT ingestion is limited to two matching review articles;
+- Vercel Cron runs daily; and
+- unchanged reviews are skipped to avoid unnecessary Gemini calls.
+
+Here, **continuous** means scheduled synchronization plus immediate processing of user-added feedback.
+
+## Getting started
+
+### Prerequisites
+
+- Node.js 22.13 or newer
+- Supabase, TMDB, Gemini, and NYT API credentials
+- Optional OMDb API credentials
+
+### 1. Install
+
+~~~bash
+git clone YOUR_GITHUB_REPOSITORY_URL
+cd cinegraph
 npm install
-npm run dev
-```
+~~~
 
-Open [http://localhost:3000](http://localhost:3000). The app loads the configured default movie from TMDB/Supabase.
+### 2. Create the database
 
-Run the production checks:
+Run the following file once in the Supabase **SQL Editor**:
 
-```bash
-npm run typecheck
-npm run build
-npm start
-```
-
-## Enable the live pipeline
-
-### 1. Create the free API keys
-
-- [TMDB developer API](https://developer.themoviedb.org/docs/getting-started)
-- [NYTimes Developer APIs](https://developer.nytimes.com/get-started)
-- [Google AI Studio / Gemini](https://aistudio.google.com/app/apikey)
-- [Supabase](https://supabase.com/dashboard)
-- Optional: [OMDb](https://www.omdbapi.com/apikey.aspx)
-
-TMDB is the canonical movie and audience-review source. NYTimes adds matching professional-review summaries and links. OMDb only enriches aggregate ratings, so the app does not require it.
-
-### 2. Create the Supabase schema
-
-Create a Supabase project, open **SQL Editor**, paste the complete contents of:
-
-```text
+~~~text
 supabase/migrations/001_cinegraph.sql
-```
+~~~
 
-Run it once. It installs `vector`, creates the relational graph, audit/version triggers, graph-maintenance trigger, indexes, and the semantic-match function. Row Level Security is enabled with no browser policies because this app accesses Supabase only from server routes using the service role.
+It installs pgvector, creates the relational and graph tables, enables Row Level Security, adds indexes, installs audit/graph triggers, and defines the match_feedback similarity function.
 
-### 3. Configure environment variables
+### 3. Configure the environment
 
-```bash
+~~~bash
 cp .env.example .env.local
-```
+~~~
 
-Fill these values:
+~~~dotenv
+# Use the TMDB Read Access Token or API key; both are not required.
+TMDB_API_READ_TOKEN=your_tmdb_read_token
+# TMDB_API_KEY=your_tmdb_api_key
 
-```dotenv
-TMDB_API_READ_TOKEN=...
-NYT_API_KEY=...
-GEMINI_API_KEY=...
-SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=...
-APP_ADMIN_KEY=choose-a-long-random-string
-CRON_SECRET=choose-a-different-long-random-string
-```
+# Christopher Nolan's The Odyssey
+DEFAULT_TMDB_MOVIE_ID=1241982
 
-Optional:
-
-```dotenv
-OMDB_API_KEY=...
+NYT_API_KEY=your_nyt_article_search_key
+GEMINI_API_KEY=your_gemini_key
 GEMINI_MODEL=gemini-2.5-flash
-```
 
-Never prefix secrets with `NEXT_PUBLIC_`. After setting `APP_ADMIN_KEY`, open the app’s **Connections** dialog and enter the same value. It is kept in `sessionStorage` for that browser tab—not in the repository or local storage.
+SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
-### 4. Bootstrap a live movie
+# Optional
+OMDB_API_KEY=
 
-Start the app, choose **Change movie**, search for a title, and select it. CineGraph will:
+# Recommended security
+APP_ADMIN_KEY=choose_a_long_random_value
+CRON_SECRET=choose_a_different_random_value
+~~~
 
-1. Fetch TMDB metadata, credits, keywords, external IDs, and up to eight user reviews.
-2. Add optional OMDb ratings.
-3. Retrieve matching NYTimes Article Search review summaries.
-4. Classify and embed each review with Gemini.
-5. Upsert the movie and feedback into Supabase.
-6. Generate graph nodes, edges, versions, and audit records.
+Never expose server secrets with a NEXT_PUBLIC_ prefix. If APP_ADMIN_KEY is configured, enter the same value in the app's connection settings; it is retained only in that browser tab's sessionStorage.
 
-## Deploy to Vercel
+### 4. Run locally
 
-1. Push this folder to GitHub.
-2. Import the repository at [vercel.com/new](https://vercel.com/new).
+~~~bash
+npm run dev
+~~~
+
+Open [http://localhost:3000](http://localhost:3000).
+
+On the first request, CineGraph loads the configured movie from Supabase or synchronizes it from the providers if it is not stored yet.
+
+## Available scripts
+
+| Command | Purpose |
+|---|---|
+| npm run dev | Start the development server |
+| npm run typecheck | Run TypeScript validation |
+| npm run lint | Run ESLint |
+| npm run build | Create the production build |
+| npm start | Run the production build |
+| npm run test:smoke | Exercise the core API workflow |
+
+## Deploying to Vercel
+
+1. Push the project to GitHub.
+2. Import the repository into Vercel.
 3. Keep the detected framework as **Next.js**.
-4. Add the same environment variables from `.env.local`.
+4. Add the same environment variables used in .env.local.
 5. Deploy.
 
-`vercel.json` schedules `/api/cron/sync` every day at 08:00 UTC. This schedule fits Vercel Hobby’s daily cron cadence. Vercel sends `CRON_SECRET` as a bearer token when that variable is configured.
-
-### Fastest first deployment
-
-Configure the environment variables before deployment; the production app never substitutes synthetic data.
-
-## Graph RAG: what is actually happening
-
-```mermaid
-flowchart LR
-  Q[Question] --> E[Gemini embedding]
-  E --> V[pgvector similarity search]
-  V --> G[Graph-neighbor expansion]
-  G --> C[Evidence context]
-  C --> A[Grounded Gemini answer]
-  A --> S[Source citations]
-```
-
-This is not a decorative graph pasted beside ordinary RAG:
-
-- Each feedback record has a 768-dimensional embedding.
-- `match_feedback` selects semantically relevant active feedback.
-- The feedback’s category and entity links determine the traversal path.
-- The synthesis prompt receives only retrieved records and their IDs.
-- The answer must cite those IDs; the UI exposes each source excerpt and URL.
-- Without Gemini, the same workflow falls back to deterministic lexical retrieval and an extractive cited answer.
-
-## Knowledge graph model
-
-The graph is stored in ordinary Postgres so the free Supabase tier is enough:
-
-```text
-Movie ──stars──────────▶ Person
-Movie ──praised for────▶ Category
-Movie ──criticized for─▶ Category
-Source ──reviewed──────▶ Movie
-Source ──mentions──────▶ Person / Concept
-Edge ──supported by────▶ Feedback
-```
-
-The source-of-truth tables are `entities` and `graph_edges`. Each evidence-derived edge keeps its `feedback_id`, confidence, evidence phrase, and validity fields. A database trigger rebuilds those edges whenever feedback is inserted, edited, deleted, or restored.
-
-## Audit guarantees
-
-- Feedback is soft-deleted, never silently destroyed through the UI.
-- Every insert/update/delete/restore writes a complete JSON snapshot to `feedback_versions`.
-- Every mutation writes an event to `audit_events`.
-- Deleted feedback is excluded from trends, graph retrieval, and answers.
-- Restoring it creates another version and reintroduces its graph facts.
-- Source payloads are retained separately in `raw_source` / `raw_sources`.
+vercel.json schedules /api/cron/sync daily at 08:00 UTC. When CRON_SECRET is configured, Vercel sends it as a bearer token.
 
 ## API routes
 
 | Route | Method | Purpose |
 |---|---:|---|
-| `/api/status` | GET | Safe integration health—never returns secrets |
-| `/api/snapshot` | GET | Complete dashboard snapshot |
-| `/api/movies/search?q=` | GET | TMDB movie search |
-| `/api/sync` | POST | Synchronize one TMDB movie |
-| `/api/feedback` | POST | Classify and create feedback |
-| `/api/feedback/:id` | PATCH | Create an edited version |
-| `/api/feedback/:id` | DELETE | Soft-delete feedback |
-| `/api/feedback/:id` | POST | Restore feedback |
-| `/api/rag` | POST | Run hybrid Graph RAG |
-| `/api/cron/sync` | GET | Update tracked movies from Vercel Cron |
+| /api/status | GET | Safe integration health without secrets |
+| /api/snapshot | GET | Complete dashboard snapshot |
+| /api/movies/search?q= | GET | TMDB movie search |
+| /api/sync | POST | Synchronize one TMDB movie |
+| /api/feedback | POST | Classify and create feedback |
+| /api/feedback/:id | PATCH | Edit and reclassify feedback |
+| /api/feedback/:id | DELETE | Soft-delete feedback |
+| /api/feedback/:id | POST | Restore feedback |
+| /api/rag | POST | Run Graph RAG |
+| /api/cron/sync | GET | Synchronize tracked movies on schedule |
 
-Write and AI routes require `x-admin-key` only when `APP_ADMIN_KEY` is configured. Set it before exposing a live deployment to avoid somebody consuming your free Gemini quota.
+Write and AI routes require the x-admin-key header when APP_ADMIN_KEY is configured.
 
-## Free-tier reality
+## Audit model
 
-- The configured integrations all offer free tiers suitable for this project.
-- TMDB is free for noncommercial use with required attribution.
-- NYTimes offers developer API access with rate limits.
-- Gemini has a limited free tier; free-tier content may be used by Google to improve its products.
-- Supabase’s free project is enough for an MVP and small portfolio demo.
-- Vercel Hobby can host the app and daily cron.
-
-“Continuous” here means scheduled synchronization plus immediate processing of user-added feedback. Polling every minute would burn free quotas without adding value to this project.
+- Feedback is soft-deleted through the UI.
+- Every add, edit, soft-delete, or restore creates a JSON snapshot in feedback_versions.
+- Every mutation creates an audit_events record.
+- Deleted feedback is excluded from trends, graph projection, and RAG retrieval.
+- Restoring feedback creates a new version and reconstructs graph relationships.
+- Raw provider payloads are retained in raw_source and raw_sources.
 
 ## Project structure
 
-```text
-app/                       UI and server API routes
-components/                Dashboard, chart, graph, UI primitives
-lib/analytics.ts           Trends, heuristic classifier, graph projection
-lib/server/providers.ts    TMDB, NYTimes, OMDb adapters
-lib/server/gemini.ts       Classification, embeddings, answer synthesis
-lib/server/repository.ts   Supabase persistence boundary
-lib/server/rag.ts          Hybrid retrieval and graph traversal
-lib/server/sync.ts         Idempotent ingestion pipeline
-supabase/migrations/       Complete database setup
-vercel.json                Vercel framework and cron configuration
-```
+~~~text
+app/                         Next.js pages and server API routes
+components/                  Dashboard, graph, charts, and UI primitives
+lib/analytics.ts             Trends and graph projection
+lib/server/default-movie.ts  Startup-movie resolution
+lib/server/providers.ts      TMDB, NYT, and OMDb adapters
+lib/server/gemini.ts         Classification, embeddings, and synthesis
+lib/server/repository.ts     Supabase persistence boundary
+lib/server/rag.ts            Hybrid retrieval and graph-aware RAG
+lib/server/sync.ts           Idempotent ingestion pipeline
+supabase/migrations/         Schema, triggers, and vector RPC
+vercel.json                  Hosting and cron configuration
+~~~
 
-## Data-source notes
+## Known limitations
 
-TMDB supplies the main audience-review stream. NYTimes returns matching professional-review metadata, summaries, and article links—not full copyrighted articles. Movies with no provider reviews can still use the built-in feedback form/import source. Additional sources can implement the same normalized `Feedback` shape without changing Graph RAG.
+- Public APIs do not provide equally rich review coverage for every movie.
+- The NYT adapter stores summaries and links, not full articles.
+- Synchronization is bounded for free-tier quotas and serverless execution time.
+- The graph taxonomy is intentionally focused on movie-feedback concepts.
+- Authentication uses an admin-key safeguard rather than full user accounts.
+
+## Future improvements
+
+- Add IMDb as a normalized provider when API access is approved.
+- Move ingestion to a durable background queue for larger volumes.
+- Add user authentication and role-based permissions.
+- Support deeper multi-hop traversal over the persisted graph.
+- Add provider retries, caching, and observability.
+
+## Attribution
+
+This product uses the TMDB API but is not endorsed or certified by TMDB. External data remains subject to each provider's terms and attribution requirements.
 
 ## License
 
-MIT. Data returned by external providers remains subject to each provider’s terms and attribution requirements.
+MIT
